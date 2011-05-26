@@ -67,16 +67,47 @@ User = UserSocialAuth._meta.get_field('user').rel.to
 USERNAME_MAX_LENGTH = User._meta.get_field(USERNAME).max_length
 
 # a few settings values
-def _setting(name, default=None):
-    return getattr(settings, name, default)
+def _setting(name, default=None, callable_desired=False):
+    val = getattr(settings, name, default)
+    if val and callable_desired and not callable(val):
+            mod_name, attr = val.rsplit('.', 1)
+            mod = import_module(mod_name)
+            val = getattr(mod, attr)
+    return val
+
+def _email_association(response, details, uid, **kwargs):
+    """Fall back association manager for ASSOCIATE_BY_EMAIL"""
+    email = details.get('email')
+    if email:
+        # try to associate accounts registered with the same email
+        # address, only if it's a single object. ValueError is
+        # raised if multiple objects are returned
+        try:
+            return User.objects.get(email=email), False
+        except MultipleObjectsReturned:
+            raise ValueError('Not unique email address supplied')
+        except User.DoesNotExist:
+            pass
+    return None, False
 
 CREATE_USERS = _setting('SOCIAL_AUTH_CREATE_USERS', True)
 ASSOCIATE_BY_MAIL = _setting('SOCIAL_AUTH_ASSOCIATE_BY_MAIL', False)
+ASSOCIATION_FALLBACK = _settings('SOCIAL_AUTH_ASSOCIATION_FALLBACK', None, \
+                                 callable_desired=True)                    
 LOAD_EXTRA_DATA = _setting('SOCIAL_AUTH_EXTRA_DATA', True)
 FORCE_RANDOM_USERNAME = _setting('SOCIAL_AUTH_FORCE_RANDOM_USERNAME', False)
-USERNAME_FIXER = _setting('SOCIAL_AUTH_USERNAME_FIXER', lambda u: u)
+USERNAME_FIXER = _setting('SOCIAL_AUTH_USERNAME_FIXER', lambda u: u, True)
 DEFAULT_USERNAME = _setting('SOCIAL_AUTH_DEFAULT_USERNAME')
 CHANGE_SIGNAL_ONLY = _setting('SOCIAL_AUTH_CHANGE_SIGNAL_ONLY', False)
+
+if ASSOCIATE_BY_MAIL:
+    if ASSOCIATION_FALLBACK:
+        raise RuntimeError("Values assigned for both " + \
+            "SOCIAL_AUTH_ASSOCIATE_BY_MAIL and " + \
+            "SOCIAL_AUTH_ASSOCIATION_FALLBACK. This configuration can't " + \
+            "be resolved. Please only specify one of these options.")
+    else:
+        ASSOCIATION_FALLBACK = _email_association
 
 
 class SocialAuthBackend(ModelBackend):
@@ -109,18 +140,9 @@ class SocialAuthBackend(ModelBackend):
             if user is None:  # new user
                 if not CREATE_USERS:
                     return None
-
-                email = details.get('email')
-                if email and ASSOCIATE_BY_MAIL:
-                    # try to associate accounts registered with the same email
-                    # address, only if it's a single object. ValueError is
-                    # raised if multiple objects are returned
-                    try:
-                        user = User.objects.get(email=email)
-                    except MultipleObjectsReturned:
-                        raise ValueError('Not unique email address supplied')
-                    except User.DoesNotExist:
-                        user = None
+                elif ASSOCIATION_FALLBACK:
+                    user, is_new = ASSOCIATION_FALLBACK(response, details,
+                                                        uid, **kwargs)
                 if not user:
                     username = self.username(details)
                     user = User.objects.create_user(username=username,
