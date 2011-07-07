@@ -92,7 +92,7 @@ def _email_association(response, details, uid, **kwargs):
 
 CREATE_USERS = _setting('SOCIAL_AUTH_CREATE_USERS', True)
 ASSOCIATE_BY_MAIL = _setting('SOCIAL_AUTH_ASSOCIATE_BY_MAIL', False)
-ASSOCIATION_FALLBACK = _settings('SOCIAL_AUTH_ASSOCIATION_FALLBACK', None, \
+ASSOCIATION_FALLBACK = _setting('SOCIAL_AUTH_ASSOCIATION_FALLBACK', None, \
                                  callable_desired=True)                    
 LOAD_EXTRA_DATA = _setting('SOCIAL_AUTH_EXTRA_DATA', True)
 FORCE_RANDOM_USERNAME = _setting('SOCIAL_AUTH_FORCE_RANDOM_USERNAME', False)
