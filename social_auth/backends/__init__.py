@@ -133,8 +133,6 @@ class SocialAuthBackend(ModelBackend):
         # authenticate.
         if not (self.name and kwargs.get(self.name) and 'response' in kwargs):
             return None
-        
-        print "authenticate running"
 
         response = kwargs.get('response')
         details = self.get_user_details(response)
@@ -624,7 +622,7 @@ class ConsumerBasedOAuth(BaseOAuth):
             data['access_token'] = access_token.to_string()
 
         kwargs.update({'response': data, self.AUTH_BACKEND.name: True})
-        print "Sending to authenticate: %s" % kwargs
+
         return self.AUTH_BACKEND().authenticate(*args, **kwargs)
 
     def unauthorized_token(self):
