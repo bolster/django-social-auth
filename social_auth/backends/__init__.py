@@ -66,6 +66,8 @@ User = UserSocialAuth._meta.get_field('user').rel.to
 # username field max length
 USERNAME_MAX_LENGTH = User._meta.get_field(USERNAME).max_length
 
+EMAIL = 'email'
+
 # a few settings values
 def _setting(name, default=None, callable_desired=False):
     val = getattr(settings, name, default)
@@ -100,6 +102,8 @@ USERNAME_FIXER = _setting('SOCIAL_AUTH_USERNAME_FIXER', lambda u: u, True)
 DEFAULT_USERNAME = _setting('SOCIAL_AUTH_DEFAULT_USERNAME')
 CHANGE_SIGNAL_ONLY = _setting('SOCIAL_AUTH_CHANGE_SIGNAL_ONLY', False)
 UUID_LENGHT = _setting('SOCIAL_AUTH_UUID_LENGTH', 16)
+FORCE_EMAIL = _setting('SOCIAL_AUTH_FORCE_EMAIL', False)
+EMAIL_FIXER = _setting('SOCIAL_AUTH_EMAIL_FIXER', lambda u: u, True)
 
 if ASSOCIATE_BY_MAIL:
     if ASSOCIATION_FALLBACK:
@@ -129,6 +133,8 @@ class SocialAuthBackend(ModelBackend):
         # authenticate.
         if not (self.name and kwargs.get(self.name) and 'response' in kwargs):
             return None
+        
+        print "authenticate running"
 
         response = kwargs.get('response')
         details = self.get_user_details(response)
@@ -142,10 +148,13 @@ class SocialAuthBackend(ModelBackend):
                 if not CREATE_USERS:
                     return None
                 elif ASSOCIATION_FALLBACK:
+                    kwargs_copy = dict(kwargs)
+                    kwargs_copy.pop('response', None)
                     user, is_new = ASSOCIATION_FALLBACK(response, details,
-                                                        uid, **kwargs)
+                                                        uid, **kwargs_copy)
                 if not user:
                     username = self.username(details)
+                    email = self.email(details, uid)
                     user = User.objects.create_user(username=username,
                                                     email=email)
                     is_new = True
@@ -172,6 +181,7 @@ class SocialAuthBackend(ModelBackend):
                 social_user.save()
 
         user.social_user = social_user
+        user.backend = "%s.%s" % (self.__module__, self.__class__.__name__)
         return user
 
     def username(self, details):
@@ -212,6 +222,19 @@ class SocialAuthBackend(ModelBackend):
                 username = short_username + mk_uuid()[:UUID_LENGHT]
 
         return final_username
+
+    def email(self, details, uid):
+        """Returns the e-mail address provided by the service provider.
+        If SOCIAL_AUTH_FORCE_EMAIL then an email address will be generated of
+        the form: [uid]@[backend].backend
+        """
+        if EMAIL in details:
+            email = details[EMAIL]
+        elif SOCIAL_AUTH_FORCE_EMAIL:
+            escaped_uid = unicode(uid).replace("@", "(at)")
+            email = "%s@%s.backend" % (uid, self.name)
+        email = EMAIL_FIXER(email)
+        return email
 
     def associate_auth(self, user, uid, response, details):
         """Associate a Social Auth with an user account."""
@@ -490,7 +513,7 @@ class OpenIdAuth(BaseAuth):
             raise ValueError('This is an OpenID relying party endpoint')
         elif response.status == SUCCESS:
             kwargs.update({'response': response, self.AUTH_BACKEND.name: True})
-            return authenticate(*args, **kwargs)
+            return self.AUTH_BACKEND().authenticate(*args, **kwargs)
         elif response.status == FAILURE:
             raise ValueError('OpenID authentication failed: %s' % \
                              response.message)
@@ -601,7 +624,8 @@ class ConsumerBasedOAuth(BaseOAuth):
             data['access_token'] = access_token.to_string()
 
         kwargs.update({'response': data, self.AUTH_BACKEND.name: True})
-        return authenticate(*args, **kwargs)
+        print "Sending to authenticate: %s" % kwargs
+        return self.AUTH_BACKEND().authenticate(*args, **kwargs)
 
     def unauthorized_token(self):
         """Return request for unauthorized token (first stage)"""
@@ -707,7 +731,7 @@ class BaseOAuth2(BaseOAuth):
         else:
             response.update(self.user_data(response['access_token']) or {})
             kwargs.update({'response': response, self.AUTH_BACKEND.name: True})
-            return authenticate(*args, **kwargs)
+            return self.AUTH_BACKEND().authenticate(*args, **kwargs)
 
     def get_scope(self):
         """Return list with needed access scope"""
