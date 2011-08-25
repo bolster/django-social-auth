@@ -41,6 +41,7 @@ credentials, some features are:
     * `Orkut OAuth`_
     * `Linkedin OAuth`_
     * `Foursquare OAuth2`_
+    * `GitHub OAuth`_
 
 - Basic user data population and signaling, to allows custom fields values
   from providers response
@@ -111,7 +112,8 @@ Configuration
         'social_auth.backends.contrib.linkedin.LinkedinBackend',
         'social_auth.backends.contrib.LiveJournalBackend',
         'social_auth.backends.contrib.orkut.OrkutBackend',
-        'social_auth.backends.contrib.orkut.FoursquareBackend',
+        'social_auth.backends.contrib.foursquare.FoursquareBackend',
+        'social_auth.backends.contrib.github.GithubBackend',
         'social_auth.backends.OpenIDBackend',
         'django.contrib.auth.backends.ModelBackend',
     )
@@ -127,6 +129,12 @@ Configuration
 
   Take into account that backends **must** be defined in AUTHENTICATION_BACKENDS_
   or Django won't pick them when trying to authenticate the user.
+
+- Define desired backends for your site::
+
+    SOCIAL_AUTH_ENABLED_BACKENDS = ('google', 'google-oauth', 'facebook', ...)
+
+  All backends are enabled by default.
 
 - Setup needed OAuth keys (see OAuth_ section for details)::
 
@@ -144,6 +152,8 @@ Configuration
     GOOGLE_OAUTH2_CLIENT_SECRET  = ''
     FOURSQUARE_CONSUMER_KEY      = ''
     FOURSQUARE_CONSUMER_SECRET   = ''
+    GITHUB_APP_ID                = ''
+    GITHUB_API_SECRET            = ''
 
 - Setup login URLs::
 
@@ -181,8 +191,8 @@ Configuration
 - Configure authentication and association complete URL names to avoid
   possible clashes::
 
-    SOCIAL_AUTH_COMPLETE_URL_NAME  = 'complete'
-    SOCIAL_AUTH_ASSOCIATE_URL_NAME = 'associate_complete'
+    SOCIAL_AUTH_COMPLETE_URL_NAME  = 'socialauth_complete'
+    SOCIAL_AUTH_ASSOCIATE_URL_NAME = 'socialauth_associate_complete'
 
 - Add URLs entries::
 
@@ -191,6 +201,17 @@ Configuration
         url(r'', include('social_auth.urls')),
         ...
     )
+
+  All ``django-social-auth`` URLs names have ``socialauth_`` prefix.
+
+- Define context processors if needed::
+
+    TEMPLATE_CONTEXT_PROCESSORS = (
+        ...
+        'social_auth.context_processors.social_auth_by_type_backends',
+    )
+
+   check `social_auth.context_processors`.
 
 - Sync database to create needed models::
 
@@ -271,6 +292,16 @@ Configuration
   This behavior is disabled by default (false) unless specifically set::
 
       SOCIAL_AUTH_ASSOCIATE_BY_MAIL = True
+
+- You can send extra parameters on auth process by defining settings per
+  provider, example to request Facebook to show Mobile authorization page,
+  define::
+
+      FACEBOOK_AUTH_EXTRA_ARGUMENTS = {'display': 'touch'}
+
+  For other providers, just define settings in the form::
+
+      <uppercase backend name>_AUTH_EXTRA_ARGUMENTS = {...}
 
 
 -------
@@ -505,6 +536,23 @@ way the values will be stored in ``UserSocialAuth.extra_data`` field.
 By default ``id``, ``first-name`` and ``last-name`` are requested and stored.
 
 
+------
+GitHub
+------
+GitHub works similar to Facebook (OAuth).
+
+- Register a new application at `GitHub Developers`_, and
+
+- fill ``App Id`` and ``App Secret`` values in the settings::
+
+      GITHUB_APP_ID = ''
+      GITHUB_API_SECRET = ''
+
+- also it's possible to define extra permissions with::
+
+     GITHUB_EXTENDED_PERMISSIONS = [...]
+ 
+
 -------
 Testing
 -------
@@ -526,7 +574,7 @@ credentials in the following way::
     TEST_FACEBOOK_USER = 'testing_account'
     TEST_FACEBOOK_PASSWORD = 'password_for_testing_account'
 
-    # goole testing
+    # google testing
     TEST_GOOGLE_USER = 'testing_account@gmail.com'
     TEST_GOOGLE_PASSWORD = 'password_for_testing_account'
 
@@ -609,6 +657,10 @@ Attributions to whom deserves:
 
   - Foursquare support
 
+- revolunet_ (Julien Bouquillon)
+
+  - GitHub support
+
 ----------
 Copyrights
 ----------
@@ -678,3 +730,6 @@ Base work is copyrighted by:
 .. _Selenium: http://seleniumhq.org/
 .. _LinkedIn fields selectors: http://developer.linkedin.com/docs/DOC-1014
 .. _Read the Docs: http://django-social-auth.readthedocs.org/
+.. _revolunet: https://github.com/revolunet
+.. _GitHub OAuth: http://developer.github.com/v3/oauth/
+.. _GitHub Developers: https://github.com/account/applications/new
