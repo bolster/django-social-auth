@@ -63,7 +63,7 @@ def update_user_details(backend, details, response, user=None, is_new=False,
         # do not update username, it was already generated
         # do not update configured fields if user already existed
         if name in (USERNAME, 'id', 'pk') or (not is_new and
-            name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', [])):
+            name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', [])) or getattr(user, name, None):
             continue
         if value and value != getattr(user, name, None):
             setattr(user, name, value)
