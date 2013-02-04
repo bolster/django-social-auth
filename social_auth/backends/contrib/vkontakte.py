@@ -16,7 +16,7 @@ from time import time
 
 from social_auth.backends import SocialAuthBackend, OAuthBackend, BaseAuth, \
                                  BaseOAuth2, USERNAME
-from social_auth.backends.exceptions import AuthTokenRevoked, AuthException
+from social_auth.exceptions import AuthTokenRevoked, AuthException
 from social_auth.utils import setting, log, dsa_urlopen
 
 
@@ -45,9 +45,11 @@ class VKontakteBackend(SocialAuthBackend):
 
     def get_user_details(self, response):
         """Return user details from VKontakte request"""
-        nickname = response.get('nickname') or ''
+        nickname = response.get('nickname') or response['id']
+        if isinstance(nickname, (list, tuple, )):
+            nickname = nickname[0]
         return {
-            USERNAME: response['id'] if len(nickname) == 0 else nickname,
+            USERNAME: nickname,
             'email': '',
             'fullname': '',
             'first_name': response.get('first_name')[0]

@@ -16,7 +16,7 @@ from django.utils import simplejson
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import ConsumerBasedOAuth, OAuthBackend, USERNAME, \
                                  BaseOAuth2
-from social_auth.backends.exceptions import AuthCanceled
+from social_auth.exceptions import AuthCanceled
 
 
 DOUBAN_SERVER = 'www.douban.com'
@@ -76,6 +76,7 @@ class DoubanBackend2(OAuthBackend):
     name = 'douban2'
     EXTRA_DATA = [('id', 'id'),
             ('uid', 'username'),
+            ('refresh_token', 'refresh_token'),
             ]
 
     def get_user_id(self, details, response):
@@ -83,7 +84,8 @@ class DoubanBackend2(OAuthBackend):
 
     def get_user_details(self, response):
         """Return user details from Douban"""
-        return {USERNAME: response["uid"],
+        return {USERNAME: response.get('uid', ''),
+                'fullname': response.get('name', ''),
                 'email': ''}
 
 

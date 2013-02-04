@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from django.template.defaultfilters import slugify
+
 from social_auth.utils import setting
 from social_auth.models import UserSocialAuth
 from social_auth.backends import USERNAME
@@ -21,10 +23,13 @@ def get_username(details, user=None,
     else:
         username = uuid4().get_hex()
 
-    uuid_length = 16
+    uuid_length = setting('SOCIAL_AUTH_UUID_LENGTH', 16)
     max_length = UserSocialAuth.username_max_length()
+    do_slugify = setting('SOCIAL_AUTH_SLUGIFY_USERNAMES', False)
     short_username = username[:max_length - uuid_length]
     final_username = UserSocialAuth.clean_username(username[:max_length])
+    if do_slugify:
+        final_username = slugify(final_username)
 
     # Generate a unique username for current user using username
     # as base but adding a unique hash at the end. Original
@@ -32,6 +37,8 @@ def get_username(details, user=None,
     while user_exists(username=final_username):
         username = short_username + uuid4().get_hex()[:uuid_length]
         final_username = UserSocialAuth.clean_username(username[:max_length])
+        if do_slugify:
+            final_username = slugify(final_username)
 
     return {'username': final_username}
 
@@ -63,7 +70,9 @@ def update_user_details(backend, details, response, user=None, is_new=False,
         # do not update username, it was already generated
         # do not update configured fields if user already existed
         if name in (USERNAME, 'id', 'pk') or (not is_new and
-            name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', [])) or (setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False) and getattr(user, name, None)):
+            name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', [])) \
+            or (setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False) \
+                and getattr(user, name, None)):
             continue
         if value and value != getattr(user, name, None):
             setattr(user, name, value)

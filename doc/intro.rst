@@ -28,6 +28,7 @@ credentials, some features are:
 
   Some contributions added support for:
 
+    * `DISQUS OAuth`_
     * `LiveJournal OpenID`_
     * `Orkut OAuth`_
     * `Linkedin OAuth`_
@@ -50,6 +51,8 @@ credentials, some features are:
     * `Twilio`_
     * `Weibo OAuth2`_
     * `Yandex OpenId`_
+    * `Readability OAuth`_
+    * `Stackoverflow OAuth2`_
 
 - Basic user data population and signaling, to allows custom fields values
   from providers response
@@ -72,6 +75,7 @@ credentials, some features are:
 .. _myOpenID: https://www.myopenid.com/
 .. _Twitter OAuth: http://dev.twitter.com/pages/oauth_faq
 .. _Facebook OAuth: http://developers.facebook.com/docs/authentication/
+.. _DISQUS OAuth: http://disqus.com/api/docs/auth/
 .. _LiveJournal OpenID: http://www.livejournal.com/support/faqbrowse.bml?faqid=283
 .. _Orkut OAuth:  http://code.google.com/apis/orkut/docs/rest/developers_guide_protocol.html#Authenticating
 .. _Linkedin OAuth: https://www.linkedin.com/secure/developer
@@ -95,3 +99,5 @@ credentials, some features are:
 .. _Twilio: https://www.twilio.com/user/account/connect/apps
 .. _Weibo OAuth2: http://open.weibo.com/wiki/Oauth2
 .. _Yandex OpenId: http://openid.yandex.ru/
+.. _Readability OAuth: http://www.readability.com/developers/api
+.. _Stackoverflow OAuth2: http://api.stackexchange.com/

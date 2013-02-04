@@ -8,19 +8,6 @@ Join to `django-social-auth discussion list`_ and bring any questions or suggest
 that would improve this application.
 
 
-South users
------------
-
-South_ users should add this rule to enable migrations::
-
-    try:
-        import south
-        from south.modelsinspector import add_introspection_rules
-        add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-    except:
-        pass
-
-
 Custom User model
 -----------------
 
@@ -34,7 +21,7 @@ Third party backends
 --------------------
 
 There's an ongoing movement to create a list of third party backends on
-djangopackages.com_, so, if somebody doesn't want it's backend in the
+djangopackages.com_, so, if somebody doesn't want its backend in the
 ``contrib`` directory but still wants to share, just split it in a separated
 package and link it there.
 
@@ -42,11 +29,21 @@ package and link it there.
 Python 2.7.2rev4, 2.7.3 and Facebook backend
 -------------------------------------------
 
-Seems that this bug described in StackOverflow_ hits users using
+It seems that this bug described in StackOverflow_ hits users using
 django-social-auth_ with Python versions 2.7.2rev4 and 2.7.3 (so far) and
 Facebook backend. The bug report `#315`_ explains it a bit more and shows
-a workaround fit avoid it.
+a workaround fit to avoid it.
 
+
+Server date time
+----------------
+
+Bad date in the server might cause errors in the auth process on some services
+like Twitter (probably all OAuth1.0 since timestamp is passed in the parameters
+to request a token).
+
+This issue is usually solved by installing ``ntp`` in the server (which is
+a good practice to have too), and syncing the time with some ntp pool service.
 
 
 .. _South: http://south.aeracode.org/
