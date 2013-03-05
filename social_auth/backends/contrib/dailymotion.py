@@ -16,10 +16,9 @@ from urllib2 import HTTPError
 from django.utils import simplejson
 
 from social_auth.utils import dsa_urlopen
-from social_auth.backends import USERNAME
 from social_auth.backends import BaseOAuth2
 from social_auth.backends import SocialAuthBackend
-from social_auth.backends.exceptions import AuthCanceled
+from social_auth.exceptions import AuthCanceled
 
 
 # Dailymotion configuration
@@ -42,10 +41,10 @@ class DailymotionBackend(SocialAuthBackend):
 
     def get_user_id(self, details, response):
         """Use dailymotion username as unique id"""
-        return details[USERNAME]
+        return details['username']
 
     def get_user_details(self, response):
-        return {USERNAME: response['screenname']}
+        return {'username': response['screenname']}
 
 
 class DailymotionAuth(BaseOAuth2):
