@@ -9,6 +9,7 @@ Contents:
    oauth
    openid
 
+   amazon
    angel
    behance
    bitbucket
@@ -17,6 +18,7 @@ Contents:
    douban
    dropbox
    evernote
+   exacttarget
    facebook
    flickr
    github
@@ -29,6 +31,7 @@ Contents:
    odnoklassnikiru
    rdio
    readability
+   reddit
    shopify
    skyrock
    soundcloud
@@ -40,6 +43,6 @@ Contents:
    tumblr
    twilio
    twitter
-   vkontakte
+   vk
    weibo
    yahoo

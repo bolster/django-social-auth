@@ -9,18 +9,32 @@ try:
 except (ImportError, AttributeError):
     UNUSABLE_PASSWORD = '!'
 
+from django.db.models import get_model
+from django.utils.importlib import import_module
+
 from mongoengine import DictField, Document, IntField, ReferenceField, \
                         StringField
-from mongoengine.django.auth import User
 from mongoengine.queryset import OperationError
 
+from social_auth.utils import setting
 from social_auth.db.base import UserSocialAuthMixin, AssociationMixin, \
                                 NonceMixin
 
 
+USER_MODEL_APP = setting('SOCIAL_AUTH_USER_MODEL') or \
+                 setting('AUTH_USER_MODEL')
+
+if USER_MODEL_APP:
+    USER_MODEL = get_model(*USER_MODEL_APP.rsplit('.', 1))
+else:
+    USER_MODEL_MODULE, USER_MODEL_NAME = \
+        'mongoengine.django.auth.User'.rsplit('.', 1)
+    USER_MODEL = getattr(import_module(USER_MODEL_MODULE), USER_MODEL_NAME)
+
+
 class UserSocialAuth(Document, UserSocialAuthMixin):
     """Social Auth association model"""
-    user = ReferenceField(User)
+    user = ReferenceField(USER_MODEL, dbref=True)
     provider = StringField(max_length=32)
     uid = StringField(max_length=255, unique_with='provider')
     extra_data = DictField()
@@ -45,16 +59,15 @@ class UserSocialAuth(Document, UserSocialAuthMixin):
 
     @classmethod
     def user_model(cls):
-        return User
+        return USER_MODEL
 
     @classmethod
-    def create_user(cls, username, email=None, *args, **kwargs):
+    def create_user(cls, *args, **kwargs):
         # Empty string makes email regex validation fail
-        if email == '':
-            email = None
-        return cls.user_model().create_user(username=username,
-                                            password=UNUSABLE_PASSWORD,
-                                            email=email, *args, **kwargs)
+        if kwargs.get('email') == '':
+            kwargs['email'] = None
+        kwargs.setdefault('password', UNUSABLE_PASSWORD)
+        return cls.user_model().create_user(*args, **kwargs)
 
     @classmethod
     def allowed_to_disconnect(cls, user, backend_name, association_id=None):

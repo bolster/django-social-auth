@@ -1,9 +1,11 @@
 from uuid import uuid4
 
-from django.template.defaultfilters import slugify
-
-from social_auth.utils import setting
+from social_auth.utils import setting, module_member
 from social_auth.models import UserSocialAuth
+
+
+slugify = module_member(setting('SOCIAL_AUTH_SLUGIFY_FUNCTION',
+                                'django.template.defaultfilters.slugify'))
 
 
 def get_username(details, user=None,
@@ -13,7 +15,7 @@ def get_username(details, user=None,
     if user was given.
     """
     if user:
-        return {'username': user.username}
+        return {'username': UserSocialAuth.user_username(user)}
 
     email_as_username = setting('SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL', False)
     uuid_length = setting('SOCIAL_AUTH_UUID_LENGTH', 16)
@@ -60,11 +62,57 @@ def create_user(backend, details, response, uid, username, user=None, *args,
         email = ''
 
     return {
-        'user': UserSocialAuth.create_user(username=username,
-                                           email=email),
+        'user': UserSocialAuth.create_user(username=username, email=email),
         'original_email': original_email,
         'is_new': True
     }
+
+
+def _ignore_field(name, is_new=False):
+    return name in ('username', 'id', 'pk') or \
+           (not is_new and
+                name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []) or \
+                (setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False) and getattr(user, name, None)))
+
+
+def mongoengine_orm_maxlength_truncate(backend, details, user=None,
+                                       is_new=False, *args, **kwargs):
+    """Truncate any value in details that corresponds with a field in the user
+    model. Add this entry to the pipeline before update_user_details"""
+    if user is None:
+        return
+    out = {}
+    names = list(user._fields.keys())
+    for name, value in details.iteritems():
+        if name in names and not _ignore_field(name, is_new):
+            max_length = user._fields[name].max_length
+            try:
+                if max_length and len(value) > max_length:
+                    value = value[:max_length]
+            except TypeError:
+                pass
+        out[name] = value
+    return {'details': out}
+
+
+def django_orm_maxlength_truncate(backend, details, user=None, is_new=False,
+                                  *args, **kwargs):
+    """Truncate any value in details that corresponds with a field in the user
+    model. Add this entry to the pipeline before update_user_details"""
+    if user is None:
+        return
+    out = {}
+    names = user._meta.get_all_field_names()
+    for name, value in details.iteritems():
+        if name in names and not _ignore_field(name, is_new):
+            max_length = user._meta.get_field(name).max_length
+            try:
+                if max_length and len(value) > max_length:
+                    value = value[:max_length]
+            except TypeError:
+                pass
+        out[name] = value
+    return {'details': out}
 
 
 def update_user_details(backend, details, response, user=None, is_new=False,
@@ -76,14 +124,12 @@ def update_user_details(backend, details, response, user=None, is_new=False,
     changed = False  # flag to track changes
 
     for name, value in details.iteritems():
-        # do not update username, it was already generated
-        # do not update configured fields if user already existed
-        if name in ('username', 'id', 'pk') or (not is_new and
-            name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', [])) or (setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False) and getattr(user, name, None)):
-            continue
-        if value and value != getattr(user, name, None):
-            setattr(user, name, value)
-            changed = True
+        # do not update username, it was already generated, do not update
+        # configured fields if user already existed
+        if not _ignore_field(name, is_new):
+            if value and value != getattr(user, name, None):
+                setattr(user, name, value)
+                changed = True
 
     if changed:
         user.save()

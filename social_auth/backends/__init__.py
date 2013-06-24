@@ -144,6 +144,10 @@ class SocialAuthBackend(object):
                 out.update(result)
             else:
                 return result
+
+        # clean the partial pipeline at the end of the process
+        if 'request' in kwargs:
+            clean_partial_pipeline(kwargs['request'])
         return out
 
     def extra_data(self, user, uid, response, details):
@@ -221,6 +225,7 @@ class OAuthBackend(SocialAuthBackend):
                 name, alias, discard = entry
             elif len(entry) == 1:
                 name = alias = entry
+                discard = False
             else:  # ???
                 continue
 
@@ -534,7 +539,8 @@ class OpenIdAuth(BaseAuth):
         """Return true if openid request will be handled with redirect or
         HTML content will be returned.
         """
-        return self.openid_request().shouldSendRedirect()
+        return self.openid_request(self.auth_extra_arguments())\
+                        .shouldSendRedirect()
 
     def openid_request(self, extra_params=None):
         """Return openid request"""
@@ -855,9 +861,7 @@ class BaseOAuth2(BaseOAuth):
             data=urlencode(cls.refresh_token_params(token)),
             headers=cls.auth_headers()
         )
-        return cls.process_refresh_token_response(
-            dsa_urlopen(request).read()
-        )
+        return cls.process_refresh_token_response(dsa_urlopen(request).read())
 
     def do_auth(self, access_token, *args, **kwargs):
         """Finish the auth process once the access_token was retrieved"""

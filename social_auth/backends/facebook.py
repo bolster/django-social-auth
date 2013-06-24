@@ -40,7 +40,7 @@ APP_NAMESPACE = setting('FACEBOOK_APP_NAMESPACE', None)
 REDIRECT_HTML = """
 <script type="text/javascript">
     var domain = 'https://apps.facebook.com/',
-        redirectURI = domain + {{ FACEBOOK_APP_NAMESPACE }} + '/';
+        redirectURI = domain + '{{ FACEBOOK_APP_NAMESPACE }}' + '/';
     window.top.location = 'https://www.facebook.com/dialog/oauth/' +
     '?client_id={{ FACEBOOK_APP_ID }}' +
     '&redirect_uri=' + encodeURIComponent(redirectURI) +
@@ -80,14 +80,20 @@ class FacebookAuth(BaseOAuth2):
     EXTRA_PARAMS_VAR_NAME = 'FACEBOOK_PROFILE_EXTRA_PARAMS'
 
     def user_data(self, access_token, *args, **kwargs):
-        """Loads user data from service"""
+        """
+        Grab user profile information from facebook.
+
+        returns: dict or None
+        """
+
         data = None
         params = backend_setting(self, self.EXTRA_PARAMS_VAR_NAME, {})
         params['access_token'] = access_token
         url = FACEBOOK_ME + urlencode(params)
 
         try:
-            data = simplejson.load(dsa_urlopen(url))
+            response = dsa_urlopen(url)
+            data = simplejson.load(response)
         except ValueError:
             extra = {'access_token': sanitize_log_data(access_token)}
             log('error', 'Could not load user data from Facebook.',
@@ -119,14 +125,17 @@ class FacebookAuth(BaseOAuth2):
                 'code': self.data['code']
             })
             try:
-                response = cgi.parse_qs(dsa_urlopen(url).read())
+                payload = dsa_urlopen(url)
             except HTTPError:
                 raise AuthFailed(self, 'There was an error authenticating '
                                        'the app')
 
-            access_token = response['access_token'][0]
-            if 'expires' in response:
-                expires = response['expires'][0]
+            response = payload.read()
+            parsed_response = cgi.parse_qs(response)
+
+            access_token = parsed_response['access_token'][0]
+            if 'expires' in parsed_response:
+                expires = parsed_response['expires'][0]
 
         if 'signed_request' in self.data:
             response = load_signed_request(
@@ -227,7 +236,7 @@ class FacebookAppAuth(FacebookAuth):
     uses_redirect = False
 
     def auth_complete(self, *args, **kwargs):
-        if not self.application_auth():
+        if not self.application_auth() and 'error' not in self.data:
             return HttpResponse(self.auth_html())
 
         access_token = None

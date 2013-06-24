@@ -31,11 +31,12 @@ Application Setup
         'social_auth.backends.contrib.orkut.OrkutBackend',
         'social_auth.backends.contrib.foursquare.FoursquareBackend',
         'social_auth.backends.contrib.github.GithubBackend',
-        'social_auth.backends.contrib.vkontakte.VKontakteBackend',
+        'social_auth.backends.contrib.vk.VKOAuth2Backend',
         'social_auth.backends.contrib.live.LiveBackend',
         'social_auth.backends.contrib.skyrock.SkyrockBackend',
         'social_auth.backends.contrib.yahoo.YahooOAuthBackend',
         'social_auth.backends.contrib.readability.ReadabilityBackend',
+        'social_auth.backends.contrib.fedora.FedoraBackend',
         'social_auth.backends.OpenIDBackend',
         'django.contrib.auth.backends.ModelBackend',
     )
@@ -251,6 +252,11 @@ Username Generation
   The feature is disabled by default to keep backward compatibility and to not
   force this option on projects where Unicode usernames are a valid choice.
 
+  If Django ``slugify`` function doesn't fit your project, it always possible
+  to override it by defining this setting::
+
+    SOCIAL_AUTH_SLUGIFY_FUNCTION = 'import.path.to.your.slugify'
+
 - If you want to use the full email address as the ``username``, define this setting::
 
     SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
@@ -390,7 +396,6 @@ Exceptions Middleware
 
     <backend name>_SOCIAL_AUTH_RAISE_EXCEPTIONS = True
     SOCIAL_AUTH_RAISE_EXCEPTIONS = True
-    DEBUG = True
 
 
 Template Context Processors
@@ -427,7 +432,7 @@ Template Context Processors
     required decorator), a convenince query string can be added to your context
     for templates. On your login options page::
 
-        <a href="{% url socialauth_begin 'twitter' %}?{{ redirect_querystring }}">...</a>
+        <a href="{% url 'socialauth_begin' 'twitter' %}?{{ redirect_querystring }}">...</a>
 
     allows for a continuous login. Useful if multiple login options are
     presented.
@@ -477,7 +482,7 @@ Miscellaneous Settings
       SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['foo',]
 
   In this case the ``foo`` field's value will be stored when user follows this link
-  ``<a href="{% url socialauth_begin 'github' %}?foo=bar">...</a>``.
+  ``<a href="{% url 'socialauth_begin' 'github' %}?foo=bar">...</a>``.
 
 - `OpenID PAPE`_ extension support by defining::
 

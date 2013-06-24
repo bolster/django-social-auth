@@ -76,6 +76,17 @@ northisup_ (Adam Hitchcock)
 kjoconnor_ (Kevin O'Connor)
   * Readablity Support
 
+uruz_ (Alexey Boriskin)
+  * Odnoklassniki.ru iframe applications support
+  * VK.com backend improvements
+
+abompard_ (Aurélien Bompard)
+  * Fedora OpenID support
+
+dhendo_ (David Henderson)
+  * Shopify support
+  * ExactTarget support
+
 .. _caioariede: https://github.com/caioariede
 .. _krvss: https://github.com/krvss
 .. _jezdez: https://github.com/jezdez
@@ -99,3 +110,6 @@ kjoconnor_ (Kevin O'Connor)
 .. _hepochen: https://github.com/hepochen
 .. _northisup: https://github.com/northisup
 .. _kjoconnor: https://github.com/kjoconnor
+.. _uruz: https://github.com/uruz
+.. _abompard: https://github.com/abompard
+.. _dhendo: https://github.com/dhendo

@@ -6,8 +6,6 @@ from datetime import datetime, timedelta
 
 from openid.association import Association as OIDAssociation
 
-from social_auth.utils import utc
-
 # django.contrib.auth and mongoengine.django.auth regex to validate usernames
 # '^[\w@.+-_]+$', we use the opposite to clean invalid characters
 CLEAN_USERNAME_REGEX = re.compile(r'[^\w.@+-_]+', re.UNICODE)
@@ -62,15 +60,14 @@ class UserSocialAuthMixin(object):
             except (ValueError, TypeError):
                 return None
 
-            now = datetime.now()
-            now_timestamp = time.mktime(now.timetuple())
+            now = datetime.utcnow()
 
             # Detect if expires is a timestamp
-            if expires > now_timestamp:  # expires is a datetime
-                return datetime.utcfromtimestamp(expires) \
-                               .replace(tzinfo=utc) - \
-                       now.replace(tzinfo=utc)
-            else:  # expires is a timedelta
+            if expires > time.mktime(now.timetuple()):
+                # expires is a datetime
+                return datetime.fromtimestamp(expires) - now
+            else:
+                # expires is a timedelta
                 return timedelta(seconds=expires)
 
     @classmethod
@@ -105,19 +102,38 @@ class UserSocialAuthMixin(object):
         return valid_password or qs.count() > 0
 
     @classmethod
+    def user_username(cls, user):
+        if hasattr(user, 'USERNAME_FIELD'):
+            # Django 1.5 custom user model, 'username' is just for internal
+            # use, doesn't imply that the model should have an username field
+            field_name = user.USERNAME_FIELD
+        else:
+            field_name = 'username'
+        return getattr(user, field_name)
+
+    @classmethod
+    def username_field(cls, values):
+        user_model = cls.user_model()
+        if hasattr(user_model, 'USERNAME_FIELD'):
+            # Django 1.5 custom user model, 'username' is just for internal
+            # use, doesn't imply that the model should have an username field
+            values[user_model.USERNAME_FIELD] = values.pop('username')
+        return values
+
+    @classmethod
     def simple_user_exists(cls, *args, **kwargs):
         """
         Return True/False if a User instance exists with the given arguments.
         Arguments are directly passed to filter() manager method.
         TODO: consider how to ensure case-insensitive email matching
         """
-        return cls.user_model().objects.filter(*args, **kwargs).count() > 0
+        kwargs = cls.username_field(kwargs)
+        return cls.user_model().objects.filter(*args, **kwargs).exists()
 
     @classmethod
-    def create_user(cls, username, email=None, *args, **kwargs):
-        return cls.user_model().objects.create_user(username=username,
-                                                    email=email, *args,
-                                                    **kwargs)
+    def create_user(cls, *args, **kwargs):
+        kwargs = cls.username_field(kwargs)
+        return cls.user_model().objects.create_user(*args, **kwargs)
 
     @classmethod
     def get_user(cls, pk):
@@ -128,7 +144,9 @@ class UserSocialAuthMixin(object):
 
     @classmethod
     def get_user_by_email(cls, email):
-        "Case insensitive search"
+        """Case insensitive search"""
+        # Do case-insensitive match, since real-world email address is
+        # case-insensitive.
         return cls.user_model().objects.get(email__iexact=email)
 
     @classmethod
