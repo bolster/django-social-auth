@@ -71,8 +71,8 @@ def create_user(backend, details, response, uid, username, user=None, *args,
 def _ignore_field(name, is_new=False):
     return name in ('username', 'id', 'pk') or \
            (not is_new and
-                name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []) or \
-                setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False))
+                (name in setting('SOCIAL_AUTH_PROTECTED_USER_FIELDS', []) or \
+                setting('SOCIAL_AUTH_DONT_UPDATE_USER_FIELDS', False)))
 
 
 def mongoengine_orm_maxlength_truncate(backend, details, user=None,
